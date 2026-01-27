@@ -206,7 +206,7 @@
       opts.className = "opts";
 
       const choices = (q.type === "tf")
-        ? [{label:"صح", value:"true"},{label:"غلط", value:"false"}]
+        ? [{label:"صح", value:"true"},{label:"خطأ", value:"false"}]
         : q.choices.map(c => ({label:c, value:c}));
 
       choices.forEach(ch => {
@@ -383,3 +383,4 @@
 </script>
 </body>
 </html>
+
