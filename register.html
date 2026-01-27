@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>تسجيل المسابقة</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f7fb;
+      padding: 24px;
+      margin: 0;
+    }
+
+    .card {
+      max-width: 520px;
+      margin: auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+    .title {
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 20px;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus{
+      border-color:#6c63ff;
+      box-shadow:0 0 0 3px rgba(108,99,255,.12);
+    }
+
+    button {
+      margin-top: 22px;
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .65;
+      cursor: not-allowed;
+    }
+
+    .msg {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .ok { background: #e8fff0; color: #0f6b2f; }
+    .bad { background: #ffecec; color: #8a1f1f; }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <div class="title">
+      تسجيل المسابقة الثقافية لشهر رمضان 1447هـ - 2026م
+    </div>
+
+    <form id="regForm">
+      <label>الاسم</label>
+      <input id="name" autocomplete="name" />
+
+      <label>الرقم المدني</label>
+      <input id="civil_id" inputmode="numeric" />
+
+      <label>رقم الصندوق</label>
+      <input id="box_number" inputmode="numeric" />
+
+      <label>رقم الموبايل</label>
+      <input id="phone" inputmode="numeric" maxlength="8" autocomplete="tel" />
+
+      <button id="btnSubmit" type="submit">تسجيل</button>
+    </form>
+
+    <div id="msg" class="msg"></div>
+
+    <!-- ✅ زر دخول للمسابقة (يظهر فقط للمسجلين ولم يرسلوا الإجابات) -->
+    <button id="goQuizBtn" type="button" style="display:none; margin-top:12px; background:#1f8b4c;">
+      دخول للمسابقة
+    </button>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwhdO_Ye6WivgCQyMTgEHrvNQOuEv6RJ9qBLCy-Vrhv_6BUhiCMV_m9kv82V3nYebk/exec";
+
+    const form = document.getElementById("regForm");
+    const msg  = document.getElementById("msg");
+    const btn  = document.getElementById("btnSubmit");
+    const goBtn = document.getElementById("goQuizBtn");
+
+    const $ = (id) => document.getElementById(id);
+
+    function showMsg(ok, text){
+      msg.style.display = "block";
+      msg.className = "msg " + (ok ? "ok" : "bad");
+      msg.textContent = text;
+    }
+
+    function hideMsg(){
+      msg.style.display = "none";
+    }
+
+    function digits(v){
+      return String(v ?? "").replace(/[^\d]/g, "");
+    }
+
+    function getParam(name){
+      const u = new URL(window.location.href);
+      return (u.searchParams.get(name) || "").trim();
+    }
+
+    async function apiCall(bodyObj){
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(bodyObj)
+      });
+      return await res.json();
+    }
+
+    function showGoToQuizButton(civil_id, box_number){
+      const civ = encodeURIComponent(civil_id);
+      const box = encodeURIComponent(box_number);
+      const target = `quiz.html?civil_id=${civ}&box_number=${box}`;
+
+      goBtn.style.display = "block";
+      goBtn.textContent = "دخول للمسابقة";
+      goBtn.onclick = () => window.location.href = target;
+    }
+
+    // ===============================
+    // Auto-fill from login/quiz link
+    // ===============================
+    (function autofillFromLink(){
+      const civil = digits(getParam("civil_id"));
+      const box   = digits(getParam("box_number"));
+
+      const civilEl = $("civil_id");
+      const boxEl   = $("box_number");
+
+      if (civil && civilEl) civilEl.value = civil;
+      if (box && boxEl)     boxEl.value = box;
+
+      // ✅ لو جاي من لينك نخليهم غير قابلين للتعديل
+      if (civil && box && civilEl && boxEl) {
+        civilEl.readOnly = true;
+        boxEl.readOnly = true;
+      }
+    })();
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideMsg();
+      goBtn.style.display = "none";
+
+      const payload = {
+        action: "register",
+        name: ($("name").value || "").trim(),
+        civil_id: digits(($("civil_id").value || "").trim()),
+        box_number: digits(($("box_number").value || "").trim()),
+        phone: digits(($("phone").value || "").trim())
+      };
+
+      if (!payload.name || !payload.civil_id || !payload.box_number || !payload.phone) {
+        showMsg(false, "من فضلك املأ كل البيانات.");
+        return;
+      }
+
+      // ✅ تحقق رقم الموبايل 8 أرقام فقط
+      if (payload.phone.length !== 8) {
+        showMsg(false, "رقم الموبايل يجب أن يكون 8 أرقام فقط.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "جارٍ التسجيل...";
+
+      try {
+        const data = await apiCall(payload);
+        console.log("API BUILD =", data.build);
+
+        // ✅ رسائل ذكية
+        if (data.ok) {
+          // ✅ تسجيل جديد ناجح → تحويل تلقائي بعد 2 ثانية (كما عندك)
+          showMsg(true, "تم التسجيل بنجاح ✅ سيتم تحويلك تلقائيًا إلى صفحة الأسئلة خلال ثوانٍ...");
+
+          showGoToQuizButton(payload.civil_id, payload.box_number);
+
+          setTimeout(() => {
+            goBtn.click();
+          }, 2000);
+
+          return;
+        }
+
+        // ❌ حالات الرفض/الفشل
+        const map = {
+          ALREADY_REGISTERED: "تم التسجيل مسبقًا لهذا الرقم المدني ورقم الصندوق. (محاولة واحدة فقط)",
+          PHONE_EXISTS: "رقم الموبايل مسجل مسبقًا.",
+          NOT_ALLOWED: "عذرًا، الرقم المدني ورقم الصندوق غير مطابقين للسجلات. يرجى التأكد من البيانات.",
+          MISSING_FIELDS: "من فضلك املأ كل البيانات.",
+          BAD_KEYS: "تأكد من الرقم المدني ورقم الصندوق.",
+          SHEETS_NOT_FOUND: "تعذر الوصول للجداول المطلوبة.",
+          SERVER_ERROR: "حدث خطأ في السيرفر. حاول مرة أخرى."
+        };
+
+        // ✅ لو مسجل بالفعل: نحدد هل يقدر يدخل ولا خلاص أرسل
+        if (data.code === "ALREADY_REGISTERED") {
+          const access = await apiCall({
+            action: "checkAccess",
+            civil_id: payload.civil_id,
+            box_number: payload.box_number
+          });
+
+          if (access.ok) {
+            showMsg(true, "أنت مسجل بالفعل ✅ يمكنك دخول المسابقة الآن.");
+            showGoToQuizButton(payload.civil_id, payload.box_number);
+          } else {
+            // غالباً ALREADY_SUBMITTED
+            showMsg(false, access.message || "تم اعتماد مشاركتك سابقًا ولا يمكن الدخول مرة أخرى.");
+            goBtn.style.display = "none";
+          }
+          return;
+        }
+
+        // باقي الأكواد
+        showMsg(false, map[data.code] || data.message || "لم يتم التسجيل.");
+
+      } catch (err) {
+        showMsg(false, "حصل خطأ في الاتصال بالسيرفر");
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "تسجيل";
+      }
+    });
+  </script>
+
+</body>
+</html>

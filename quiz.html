@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>المسابقة الثقافية - رمضان 1447هـ / 2026م</title>
+  <style>
+    *{box-sizing:border-box}
+    body{
+      font-family: Arial, sans-serif;
+      background:#f6f7fb;
+      padding:24px;
+      margin:0;
+    }
+    .wrap{max-width:980px;margin:0 auto}
+    .card{
+      background:#fff;border-radius:16px;
+      padding:22px;box-shadow:0 10px 30px rgba(0,0,0,.08);
+      margin-bottom:18px;
+    }
+    h1{margin:0 0 10px 0;text-align:center}
+    .muted{color:#666;text-align:center;margin:0 0 14px 0}
+    button{
+      width:100%;
+      background:#6c63ff;color:#fff;border:0;border-radius:12px;
+      padding:14px 16px;font-size:18px;font-weight:700;cursor:pointer;
+      margin-top:14px;
+    }
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .msg{
+      margin-top:14px;padding:12px 14px;border-radius:12px;font-weight:700;text-align:center;
+      display:none;
+    }
+    .ok{background:#e8fff1;color:#0a6b2b;display:block}
+    .err{background:#ffecec;color:#a30000;display:block}
+    .hidden{display:none !important;}
+
+    .topbar{
+      display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+      padding:10px 0 0 0;
+    }
+    .pill{
+      background:#f1f3ff;color:#3b37b8;border-radius:999px;padding:8px 12px;font-weight:700;
+      font-size:14px;
+    }
+    .hr{height:1px;background:#eee;margin:12px 0}
+    .q{
+      border:1px solid #eee;border-radius:14px;padding:14px 14px;margin:12px 0;
+      background:#fafafa;
+    }
+    .q-title{font-weight:800;margin-bottom:8px}
+    .opts{display:grid;gap:8px}
+    .opt{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 12px;border:1px solid #e5e5e5;border-radius:12px;background:#fff;
+    }
+    .opt input{width:auto;margin:0}
+    .small{font-size:13px;color:#666;text-align:center;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- Loading/Access -->
+    <div class="card" id="gateCard">
+      <h1>المسابقة الثقافية لشهر رمضان 1447هـ / 2026م</h1>
+      <div class="muted">جارٍ التحقق من بياناتك...</div>
+      <div class="msg" id="gateMsg"></div>
+      <button id="backBtn" class="hidden">العودة للتسجيل</button>
+    </div>
+
+    <!-- QUIZ -->
+    <!-- QUIZ -->
+<div class="card hidden" id="quizCard">
+  <div class="topbar">
+    <div class="pill" id="who"></div>
+    <div class="pill">نسبة النجاح: <span id="passPct">70</span>%</div>
+    <div class="pill">عدد الأسئلة: <span id="qCount">0</span></div>
+  </div>
+
+  <div class="hr"></div>
+
+  <div id="questions"></div>
+
+  <button id="btnSubmit">إرسال الإجابات</button>
+  <div class="msg" id="quizMsg"></div>
+  <div class="small">تأكد من إجابة كل الأسئلة قبل الإرسال.</div>
+</div> <!-- ✅ مهم جدًا -->
+
+<!-- ✅ APPROVED VIEW -->
+<div class="card hidden" id="approvedCard">
+  <h1>تم اعتماد مشاركتك ✅</h1>
+
+  <div class="muted" id="approvedText">
+    شكرًا لمشاركتك 🌟
+  </div>
+
+  <div class="msg ok" style="display:block" id="approvedMsg">
+    تم اعتماد محاولتك بنجاح.
+  </div>
+
+  <button id="approvedBtn" type="button" style="background:#1f8b4c">
+    تم
+  </button>
+</div>
+  </div>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycbwhdO_Ye6WivgCQyMTgEHrvNQOuEv6RJ9qBLCy-Vrhv_6BUhiCMV_m9kv82V3nYebk/exec";
+
+  const PASS_PERCENT = 70;
+  const QUIZ_ID = "RAMADAN_1447_2026_V1";
+
+  const QUESTIONS = [
+    { id:"tf1", type:"tf",  text:"وُلِد النبي ﷺ في عام الفيل بعد حادثة الفيل بشهرين تقريبًا.", answer:"false" },
+    { id:"tf2", type:"tf",  text:"كانت أول هجرة في الإسلام إلى المدينة المنورة.", answer:"false" },
+    { id:"tf3", type:"tf",  text:"شهد النبي ﷺ حرب الفِجَار وهو شاب قبل البعثة.", answer:"true" },
+    { id:"tf4", type:"tf",  text:"استمر نزول الوحي على النبي ﷺ ثلاثًا وعشرين سنة.", answer:"true" },
+    { id:"tf5", type:"tf",  text:"كان صلح الحديبية في السنة السادسة للهجرة.", answer:"true" },
+    { id:"tf6", type:"tf",  text:"آخر غزوة غزاها النبي ﷺ هي غزوة تبوك.", answer:"false" },
+    { id:"tf7", type:"tf",  text:"توفي النبي ﷺ وعمره ثلاث وستون سنة.", answer:"true" },
+    {
+      id:"mcq1",
+      type:"mcq",
+      text:"قوله تعالى: ﴿إِيَّاكَ نَعْبُدُ﴾ قدّم المفعول به على الفعل والفاعل للدلالة على:",
+      choices:["الحصر والتخصيص","التخفيف في اللفظ","تعظيم الفعل فقط","التفاؤل بالعبادة"],
+      answer:"الحصر والتخصيص"
+    },
+    {
+      id:"mcq2",
+      type:"mcq",
+      text:"المقصود بـ﴿الْقُرْآنِ الْعَظِيمِ﴾ في قوله تعالى: ﴿وَلَقَدْ آتَيْنَاكَ سَبْعًا مِّنَ الْمَثَانِي وَالْقُرْآنَ الْعَظِيمَ﴾ هو:",
+      choices:["سورة الفاتحة فقط","جميع القرآن","القرآن مع السنّة","القرآن والكتب السابقة"],
+      answer:"جميع القرآن"
+    },
+    {
+      id:"mcq3",
+      type:"mcq",
+      text:"قوله تعالى: ﴿لَا يُسْأَلُ عَمَّا يَفْعَلُ﴾ يدل على:",
+      choices:["نفي الحكمة عن أفعال الله","كمال العدل الإلهي","انتفاء القدرة البشرية","سقوط التكليف"],
+      answer:"كمال العدل الإلهي"
+    },
+    {
+      id:"mcq4",
+      type:"mcq",
+      text:"المراد بـ﴿الْفِتْنَةُ﴾ في قوله تعالى: ﴿وَالْفِتْنَةُ أَشَدُّ مِنَ الْقَتْلِ﴾ هو:",
+      choices:["القتل","الشرك والصد عن الدين","الابتلاء بالمرض","العذاب في الآخرة"],
+      answer:"الشرك والصد عن الدين"
+    },
+  ];
+
+  let SESSION = { civil_id:"", box_number:"", name:"", status:"" };
+
+  const $ = (id) => document.getElementById(id);
+  const digits = (v) => String(v || "").replace(/[^\d]/g, "");
+
+  function showMsg(el, ok, text){
+    el.className = "msg " + (ok ? "ok" : "err");
+    el.textContent = text;
+    el.style.display = "block";
+  }
+  function hide(el){ el.classList.add("hidden"); }
+  function show(el){ el.classList.remove("hidden"); }
+
+  function showApprovedScreen(titleText, msgText){
+  // اخفي كل الكروت
+  hide($("gateCard"));
+  hide($("quizCard"));
+
+  // اظهر صفحة الاعتماد
+  show($("approvedCard"));
+
+  $("approvedText").textContent = titleText || "شكرًا لمشاركتك 🌟";
+  $("approvedMsg").textContent  = msgText  || "تم اعتماد محاولتك بنجاح.";
+
+  $("approvedBtn").onclick = () => {
+    window.location.href = "register.html";
+  };
+}
+
+  async function apiCall(bodyObj){
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(bodyObj),
+    });
+    return await res.json();
+  }
+
+  function renderQuestions(){
+    $("qCount").textContent = QUESTIONS.length;
+    $("passPct").textContent = PASS_PERCENT;
+
+    const container = $("questions");
+    container.innerHTML = "";
+
+    QUESTIONS.forEach((q, idx) => {
+      const div = document.createElement("div");
+      div.className = "q";
+
+      const title = document.createElement("div");
+      title.className = "q-title";
+      title.textContent = `${idx+1}) ${q.text}`;
+      div.appendChild(title);
+
+      const opts = document.createElement("div");
+      opts.className = "opts";
+
+      const choices = (q.type === "tf")
+        ? [{label:"صح", value:"true"},{label:"خطأ", value:"false"}]
+        : q.choices.map(c => ({label:c, value:c}));
+
+      choices.forEach(ch => {
+        const label = document.createElement("label");
+        label.className = "opt";
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = q.id;
+        input.value = ch.value;
+
+        const span = document.createElement("span");
+        span.textContent = ch.label;
+
+        label.appendChild(input);
+        label.appendChild(span);
+        opts.appendChild(label);
+      });
+
+      div.appendChild(opts);
+      container.appendChild(div);
+    });
+  }
+
+  function collectAnswers(){
+    const answers = {};
+    for (const q of QUESTIONS){
+      const chosen = document.querySelector(`input[name="${q.id}"]:checked`);
+      if (!chosen) return { ok:false, missing:q.id };
+      answers[q.id] = chosen.value;
+    }
+    return { ok:true, answers };
+  }
+
+  function grade(answers){
+    let correct = 0;
+    QUESTIONS.forEach(q => {
+      if (String(answers[q.id]) === String(q.answer)) correct++;
+    });
+    const total = QUESTIONS.length;
+    const percent = Math.round((correct / total) * 100);
+    const passed = percent >= PASS_PERCENT;
+    return { correct, total, percent, passed };
+  }
+
+  async function gate(){
+    const params = new URLSearchParams(window.location.search);
+    const civil = digits(params.get("civil_id") || "");
+    const box   = digits(params.get("box_number") || "");
+
+    if (!civil || !box){
+      showMsg($("gateMsg"), false, "لا يمكن فتح صفحة الأسئلة بدون التسجيل أولاً.");
+      show($("backBtn"));
+      $("backBtn").onclick = () => window.location.href = "register.html";
+      return;
+    }
+
+    try{
+      const data = await apiCall({ action:"checkAccess", civil_id: civil, box_number: box });
+
+      if (!data.ok){
+
+  // ✅ لو سبق الإرسال/الاعتماد: اعرض صفحة "تم اعتماد مشاركتك"
+  if (data.code === "ALREADY_SUBMITTED") {
+    showApprovedScreen(
+      "تم اعتماد مشاركتك بالفعل ✅",
+      data.message || "تم اعتماد محاولتك من قبل. نشكرك على المشاركة 🌟"
+    );
+    return;
+  }
+
+  // باقي الحالات: رجوع للتسجيل
+  showMsg($("gateMsg"), false, data.message || "غير مسموح.");
+  show($("backBtn"));
+  $("backBtn").onclick = () => window.location.href =
+    `register.html?civil_id=${encodeURIComponent(civil)}&box_number=${encodeURIComponent(box)}`;
+  return;
+}
+
+
+      SESSION.civil_id = civil;
+      SESSION.box_number = box;
+      SESSION.name = data.name || "";
+      SESSION.status = data.status || "";
+
+      $("who").textContent = SESSION.name ? `مرحبًا: ${SESSION.name}` : "مرحبًا بك";
+
+      hide($("gateCard"));
+      show($("quizCard"));
+      renderQuestions();
+
+    }catch(e){
+      showMsg($("gateMsg"), false, "تعذر الاتصال بالسيرفر.");
+      show($("backBtn"));
+      $("backBtn").onclick = () => window.location.href = "register.html";
+      console.error(e);
+    }
+  }
+
+  $("btnSubmit").addEventListener("click", async () => {
+    const msgEl = $("quizMsg");
+    msgEl.style.display = "none";
+
+    const got = collectAnswers();
+    if (!got.ok){
+      return showMsg(msgEl, false, "من فضلك أجب على كل الأسئلة قبل الإرسال.");
+    }
+
+    const result = grade(got.answers);
+
+    $("btnSubmit").disabled = true;
+    $("btnSubmit").textContent = "جارٍ الإرسال...";
+
+    try{
+      const payload = {
+        action: "submitQuiz",
+        quiz_id: QUIZ_ID,
+        civil_id: SESSION.civil_id,
+        box_number: SESSION.box_number,
+        answers: got.answers,
+        score: result.correct,
+        total: result.total,
+        percent: result.percent
+      };
+
+      const data = await apiCall(payload);
+
+      if (!data.ok){
+        showMsg(msgEl, false, data.message || "لم يتم الإرسال.");
+        $("btnSubmit").disabled = false;
+        $("btnSubmit").textContent = "إرسال الإجابات";
+        return;
+      }
+
+      const nice = result.passed
+        ? `✅ مبروك! نتيجتك ${result.correct}/${result.total} (${result.percent}%). تم اعتماد مشاركتك.`
+        : `❌ للأسف لم تحقق نسبة النجاح. نتيجتك ${result.correct}/${result.total} (${result.percent}%). تم اعتماد مشاركتك.`;
+
+      showMsg(msgEl, true, nice);
+      $("btnSubmit").disabled = true;
+      $("btnSubmit").textContent = "تم الإرسال";
+    }catch(e){
+      showMsg(msgEl, false, "تعذر الاتصال بالسيرفر أثناء الإرسال.");
+      console.error(e);
+      $("btnSubmit").disabled = false;
+      $("btnSubmit").textContent = "إرسال الإجابات";
+    }
+  });
+
+  // start
+  gate();
+</script>
+</body>
+</html>
