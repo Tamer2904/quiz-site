@@ -252,19 +252,21 @@
     return { correct, total, percent, passed };
   }
 
-  function openApprovedView(){
+  function openApprovedView(statusText){
     // تعبئة بيانات المستخدم
     $("apName").textContent  = SESSION.name  || "-";
     $("apCivil").textContent = SESSION.civil_id || "-";
     $("apBox").textContent   = SESSION.box_number || "-";
     $("apPhone").textContent = SESSION.phone || "-";
 
+    // رسالة ديناميكية
+    if (statusText) $("approvedMsg").textContent = statusText;
+
     // إظهار كارت الاعتماد
     hide($("gateCard"));
     hide($("quizCard"));
     show($("approvedCard"));
 
-    // زر "تم" يرجع للتسجيل (لو تحب نخليه يرجع register أو يقفل الصفحة)
     $("approvedBtn").onclick = () => {
       window.location.href = "register.html";
     };
@@ -285,6 +287,18 @@
     try{
       const data = await apiCall({ action:"checkAccess", civil_id: civil, box_number: box });
 
+      // ✅ لو الشخص سبق الإرسال/الاعتماد: افتح صفحة الاعتماد مباشرة
+      if (!data.ok && data.code === "ALREADY_SUBMITTED") {
+        SESSION.civil_id = civil;
+        SESSION.box_number = box;
+        SESSION.name = data.name || "";
+        SESSION.phone = data.phone || "";
+        SESSION.status = (data.status || "").trim();
+
+        openApprovedView(data.message || "تم اعتماد محاولتك. نشكرك على المشاركة 🌟");
+        return;
+      }
+
       if (!data.ok){
         showMsg($("gateMsg"), false, data.message || "غير مسموح.");
         show($("backBtn"));
@@ -298,13 +312,6 @@
       SESSION.name = data.name || "";
       SESSION.phone = data.phone || "";   // ✅ لازم Apps Script يرجّعها
       SESSION.status = (data.status || "").trim();
-
-      // ✅ لو هو بالفعل معتمد/مُرسل قبل كده (على حسب الستاتس عندك)
-      // عدّل القيم دي حسب اللي عندك في الشيت: PASSED / SUBMITTED / APPROVED ...
-      if (SESSION.status === "PASSED" || SESSION.status === "APPROVED") {
-        openApprovedView();
-        return;
-      }
 
       $("who").textContent = SESSION.name ? `مرحبًا: ${SESSION.name}` : "مرحبًا بك";
 
@@ -355,18 +362,14 @@
         return;
       }
 
-      // ✅ المطلوب: لو نجح >=70% نحوله لكارت الاعتماد
-      if (result.passed) {
-        SESSION.status = "PASSED";
-        openApprovedView();
-        return;
-      }
+      // ✅ بعد الإرسال: افتح صفحة الاعتماد في كل الحالات
+      SESSION.status = (data.status || "").trim();
 
-      // لو أقل من 70%: نظهر رسالة فقط (بدون تحويل)
-      const nice = `❌ للأسف لم تحقق نسبة النجاح. نتيجتك ${result.correct}/${result.total} (${result.percent}%).`;
-      showMsg(msgEl, false, nice);
-      $("btnSubmit").disabled = true;
-      $("btnSubmit").textContent = "تم الإرسال";
+      const statusText = (SESSION.status === "PASSED")
+        ? `✅ تم اعتماد إجاباتك بنجاح. نتيجتك ${result.correct}/${result.total} (${result.percent}%).`
+        : `✅ تم اعتماد محاولتك. نتيجتك ${result.correct}/${result.total} (${result.percent}%).`;
+
+      openApprovedView(statusText);
 
     }catch(e){
       showMsg(msgEl, false, "تعذر الاتصال بالسيرفر أثناء الإرسال.");
