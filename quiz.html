@@ -56,12 +56,27 @@
     }
     .opt input{width:auto;margin:0}
     .small{font-size:13px;color:#666;text-align:center;margin-top:10px}
+
+    .kv{
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      gap:10px 14px;
+      align-items:center;
+      margin-top:14px;
+      background:#fafafa;
+      border:1px solid #eee;
+      border-radius:14px;
+      padding:14px;
+    }
+    .k{font-weight:800;color:#333}
+    .v{font-weight:700;color:#222;word-break:break-word}
+    .greenBtn{background:#1f8b4c}
   </style>
 </head>
 <body>
   <div class="wrap">
 
-    <!-- Loading/Access -->
+    <!-- Gate -->
     <div class="card" id="gateCard">
       <h1>المسابقة الثقافية لشهر رمضان 1447هـ / 2026م</h1>
       <div class="muted">جارٍ التحقق من بياناتك...</div>
@@ -70,39 +85,39 @@
     </div>
 
     <!-- QUIZ -->
-    <!-- QUIZ -->
-<div class="card hidden" id="quizCard">
-  <div class="topbar">
-    <div class="pill" id="who"></div>
-    <div class="pill">نسبة النجاح: <span id="passPct">70</span>%</div>
-    <div class="pill">عدد الأسئلة: <span id="qCount">0</span></div>
-  </div>
+    <div class="card hidden" id="quizCard">
+      <div class="topbar">
+        <div class="pill" id="who"></div>
+        <div class="pill">نسبة النجاح: <span id="passPct">70</span>%</div>
+        <div class="pill">عدد الأسئلة: <span id="qCount">0</span></div>
+      </div>
 
-  <div class="hr"></div>
+      <div class="hr"></div>
 
-  <div id="questions"></div>
+      <div id="questions"></div>
 
-  <button id="btnSubmit">إرسال الإجابات</button>
-  <div class="msg" id="quizMsg"></div>
-  <div class="small">تأكد من إجابة كل الأسئلة قبل الإرسال.</div>
-</div> <!-- ✅ مهم جدًا -->
+      <button id="btnSubmit">إرسال الإجابات</button>
+      <div class="msg" id="quizMsg"></div>
+      <div class="small">تأكد من إجابة كل الأسئلة قبل الإرسال.</div>
+    </div>
 
-<!-- ✅ APPROVED VIEW -->
-<div class="card hidden" id="approvedCard">
-  <h1>تم اعتماد مشاركتك ✅</h1>
+    <!-- ✅ APPROVED VIEW -->
+    <div class="card hidden" id="approvedCard">
+      <h1>تم اعتماد إجاباتك بالمسابقة ✅</h1>
+      <div class="muted">شكرًا لمشاركتك 🌟</div>
 
-  <div class="muted" id="approvedText">
-    شكرًا لمشاركتك 🌟
-  </div>
+      <div class="kv">
+        <div class="k">الاسم</div>         <div class="v" id="apName">-</div>
+        <div class="k">الرقم المدني</div>  <div class="v" id="apCivil">-</div>
+        <div class="k">رقم الصندوق</div>   <div class="v" id="apBox">-</div>
+        <div class="k">رقم الموبايل</div>  <div class="v" id="apPhone">-</div>
+      </div>
 
-  <div class="msg ok" style="display:block" id="approvedMsg">
-    تم اعتماد محاولتك بنجاح.
-  </div>
+      <div class="msg ok" style="display:block" id="approvedMsg">تم اعتماد محاولتك بنجاح.</div>
 
-  <button id="approvedBtn" type="button" style="background:#1f8b4c">
-    تم
-  </button>
-</div>
+      <button id="approvedBtn" type="button" class="greenBtn">تم</button>
+    </div>
+
   </div>
 
 <script>
@@ -149,7 +164,7 @@
     },
   ];
 
-  let SESSION = { civil_id:"", box_number:"", name:"", status:"" };
+  let SESSION = { civil_id:"", box_number:"", name:"", phone:"", status:"" };
 
   const $ = (id) => document.getElementById(id);
   const digits = (v) => String(v || "").replace(/[^\d]/g, "");
@@ -161,22 +176,6 @@
   }
   function hide(el){ el.classList.add("hidden"); }
   function show(el){ el.classList.remove("hidden"); }
-
-  function showApprovedScreen(titleText, msgText){
-  // اخفي كل الكروت
-  hide($("gateCard"));
-  hide($("quizCard"));
-
-  // اظهر صفحة الاعتماد
-  show($("approvedCard"));
-
-  $("approvedText").textContent = titleText || "شكرًا لمشاركتك 🌟";
-  $("approvedMsg").textContent  = msgText  || "تم اعتماد محاولتك بنجاح.";
-
-  $("approvedBtn").onclick = () => {
-    window.location.href = "register.html";
-  };
-}
 
   async function apiCall(bodyObj){
     const res = await fetch(API_URL, {
@@ -207,7 +206,7 @@
       opts.className = "opts";
 
       const choices = (q.type === "tf")
-        ? [{label:"صح", value:"true"},{label:"خطأ", value:"false"}]
+        ? [{label:"صح", value:"true"},{label:"غلط", value:"false"}]
         : q.choices.map(c => ({label:c, value:c}));
 
       choices.forEach(ch => {
@@ -253,6 +252,24 @@
     return { correct, total, percent, passed };
   }
 
+  function openApprovedView(){
+    // تعبئة بيانات المستخدم
+    $("apName").textContent  = SESSION.name  || "-";
+    $("apCivil").textContent = SESSION.civil_id || "-";
+    $("apBox").textContent   = SESSION.box_number || "-";
+    $("apPhone").textContent = SESSION.phone || "-";
+
+    // إظهار كارت الاعتماد
+    hide($("gateCard"));
+    hide($("quizCard"));
+    show($("approvedCard"));
+
+    // زر "تم" يرجع للتسجيل (لو تحب نخليه يرجع register أو يقفل الصفحة)
+    $("approvedBtn").onclick = () => {
+      window.location.href = "register.html";
+    };
+  }
+
   async function gate(){
     const params = new URLSearchParams(window.location.search);
     const civil = digits(params.get("civil_id") || "");
@@ -269,29 +286,25 @@
       const data = await apiCall({ action:"checkAccess", civil_id: civil, box_number: box });
 
       if (!data.ok){
-
-  // ✅ لو سبق الإرسال/الاعتماد: اعرض صفحة "تم اعتماد مشاركتك"
-  if (data.code === "ALREADY_SUBMITTED") {
-    showApprovedScreen(
-      "تم اعتماد مشاركتك بالفعل ✅",
-      data.message || "تم اعتماد محاولتك من قبل. نشكرك على المشاركة 🌟"
-    );
-    return;
-  }
-
-  // باقي الحالات: رجوع للتسجيل
-  showMsg($("gateMsg"), false, data.message || "غير مسموح.");
-  show($("backBtn"));
-  $("backBtn").onclick = () => window.location.href =
-    `register.html?civil_id=${encodeURIComponent(civil)}&box_number=${encodeURIComponent(box)}`;
-  return;
-}
-
+        showMsg($("gateMsg"), false, data.message || "غير مسموح.");
+        show($("backBtn"));
+        $("backBtn").onclick = () => window.location.href =
+          `register.html?civil_id=${encodeURIComponent(civil)}&box_number=${encodeURIComponent(box)}`;
+        return;
+      }
 
       SESSION.civil_id = civil;
       SESSION.box_number = box;
       SESSION.name = data.name || "";
-      SESSION.status = data.status || "";
+      SESSION.phone = data.phone || "";   // ✅ لازم Apps Script يرجّعها
+      SESSION.status = (data.status || "").trim();
+
+      // ✅ لو هو بالفعل معتمد/مُرسل قبل كده (على حسب الستاتس عندك)
+      // عدّل القيم دي حسب اللي عندك في الشيت: PASSED / SUBMITTED / APPROVED ...
+      if (SESSION.status === "PASSED" || SESSION.status === "APPROVED") {
+        openApprovedView();
+        return;
+      }
 
       $("who").textContent = SESSION.name ? `مرحبًا: ${SESSION.name}` : "مرحبًا بك";
 
@@ -342,13 +355,19 @@
         return;
       }
 
-      const nice = result.passed
-        ? `✅ مبروك! نتيجتك ${result.correct}/${result.total} (${result.percent}%). تم اعتماد مشاركتك.`
-        : `❌ للأسف لم تحقق نسبة النجاح. نتيجتك ${result.correct}/${result.total} (${result.percent}%). تم اعتماد مشاركتك.`;
+      // ✅ المطلوب: لو نجح >=70% نحوله لكارت الاعتماد
+      if (result.passed) {
+        SESSION.status = "PASSED";
+        openApprovedView();
+        return;
+      }
 
-      showMsg(msgEl, true, nice);
+      // لو أقل من 70%: نظهر رسالة فقط (بدون تحويل)
+      const nice = `❌ للأسف لم تحقق نسبة النجاح. نتيجتك ${result.correct}/${result.total} (${result.percent}%).`;
+      showMsg(msgEl, false, nice);
       $("btnSubmit").disabled = true;
       $("btnSubmit").textContent = "تم الإرسال";
+
     }catch(e){
       showMsg(msgEl, false, "تعذر الاتصال بالسيرفر أثناء الإرسال.");
       console.error(e);
@@ -357,7 +376,6 @@
     }
   });
 
-  // start
   gate();
 </script>
 </body>
