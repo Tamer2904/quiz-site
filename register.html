@@ -24,11 +24,51 @@
       box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     }
 
-    .title {
+    /* ✅ Header with logo + titles */
+    .header {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 18px;
+    }
+
+    .logoWrap{
+      display:flex;
+      justify-content:center;
+      margin-bottom: 10px;
+    }
+
+    .logo{
+      width: 92px;
+      height: 92px;
+      object-fit: contain;
+      border-radius: 14px;
+      background:#fff;
+      border: 1px solid #eee;
+      box-shadow: 0 6px 16px rgba(0,0,0,.06);
+      padding: 8px;
+    }
+
+    .titleMain{
+      margin: 8px 0 4px;
       font-size: 20px;
-      line-height: 1.6;
+      font-weight: 900;
+      line-height: 1.7;
+      color:#111;
+    }
+
+    .titleSub{
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.7;
+      color:#333;
+    }
+
+    .titleYear{
+      margin: 2px 0 0;
+      font-size: 14px;
+      font-weight: 800;
+      color:#666;
+      line-height: 1.7;
     }
 
     label {
@@ -87,8 +127,17 @@
 <body>
 
   <div class="card">
-    <div class="title">
-      تسجيل المسابقة الثقافية لشهر رمضان 1447هـ - 2026م
+
+    <!-- ✅ NEW HEADER -->
+    <div class="header">
+      <div class="logoWrap">
+        <!-- ضع ملف اللوجو باسم logo.png بجانب register.html -->
+        <img class="logo" src="logo.png" alt="شعار جمعية الفحيحيل التعاونية" />
+      </div>
+
+      <div class="titleMain">جمعية الفحيحيل التعاونية</div>
+      <div class="titleSub">المسابقة الثقافية لشهر رمضان المبارك</div>
+      <div class="titleYear">لعام 1447هـ - 2026م</div>
     </div>
 
     <form id="regForm">
@@ -216,7 +265,6 @@
 
         // ✅ رسائل ذكية
         if (data.ok) {
-          // ✅ تسجيل جديد ناجح → تحويل تلقائي بعد 2 ثانية (كما عندك)
           showMsg(true, "تم التسجيل بنجاح ✅ سيتم تحويلك تلقائيًا إلى صفحة الأسئلة خلال ثوانٍ...");
 
           showGoToQuizButton(payload.civil_id, payload.box_number);
@@ -228,7 +276,6 @@
           return;
         }
 
-        // ❌ حالات الرفض/الفشل
         const map = {
           ALREADY_REGISTERED: "تم التسجيل مسبقًا لهذا الرقم المدني ورقم الصندوق. (محاولة واحدة فقط)",
           PHONE_EXISTS: "رقم الموبايل مسجل مسبقًا.",
@@ -239,7 +286,6 @@
           SERVER_ERROR: "حدث خطأ في السيرفر. حاول مرة أخرى."
         };
 
-        // ✅ لو مسجل بالفعل: نحدد هل يقدر يدخل ولا خلاص أرسل
         if (data.code === "ALREADY_REGISTERED") {
           const access = await apiCall({
             action: "checkAccess",
@@ -251,14 +297,12 @@
             showMsg(true, "أنت مسجل بالفعل ✅ يمكنك دخول المسابقة الآن.");
             showGoToQuizButton(payload.civil_id, payload.box_number);
           } else {
-            // غالباً ALREADY_SUBMITTED
             showMsg(false, access.message || "تم اعتماد مشاركتك سابقًا ولا يمكن الدخول مرة أخرى.");
             goBtn.style.display = "none";
           }
           return;
         }
 
-        // باقي الأكواد
         showMsg(false, map[data.code] || data.message || "لم يتم التسجيل.");
 
       } catch (err) {
